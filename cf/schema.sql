@@ -125,6 +125,16 @@ CREATE TABLE IF NOT EXISTS daily_words (
   FOREIGN KEY (writing_id) REFERENCES writings(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  token_hash TEXT NOT NULL,
+  expires_at DATETIME NOT NULL,
+  used_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_writings_author ON writings(author_id);
 CREATE INDEX IF NOT EXISTS idx_writings_status ON writings(status);
 CREATE INDEX IF NOT EXISTS idx_writings_featured ON writings(featured);
