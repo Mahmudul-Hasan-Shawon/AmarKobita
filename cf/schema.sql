@@ -13,11 +13,18 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT UNIQUE NOT NULL,
   email TEXT,
   password_hash TEXT NOT NULL,
+  display_name TEXT,
+  birth_date TEXT,
+  country TEXT,
+  language TEXT DEFAULT 'english',
+  short_bio TEXT,
+  portrait TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS authors (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
   short_bio TEXT,
@@ -30,7 +37,8 @@ CREATE TABLE IF NOT EXISTS authors (
   other_languages TEXT,
   tags TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -79,11 +87,13 @@ CREATE TABLE IF NOT EXISTS submissions (
   text TEXT NOT NULL,
   original_text TEXT,
   language TEXT DEFAULT 'english',
+  type TEXT DEFAULT 'poetry',
   category_id INTEGER,
   status TEXT DEFAULT 'pending',
   admin_note TEXT,
   writing_id INTEGER,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   reviewed_at DATETIME,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,

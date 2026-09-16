@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { motion } from 'framer-motion';
+import { COUNTRIES, LANGUAGES } from '../../utils/helpers';
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -10,6 +11,9 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [country, setCountry] = useState('');
+  const [language, setLanguage] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register, isUser } = useUser();
@@ -24,10 +28,18 @@ export default function RegisterPage() {
     setError('');
     if (password.length < 6) return setError('Password must be at least 6 characters');
     if (password !== confirm) return setError('Passwords do not match');
+    if (birthDate && new Date(birthDate) >= new Date()) return setError('Date of birth must be in the past');
     setLoading(true);
     try {
-      await register(username, email, password);
-      navigate('/submit');
+      await register({
+        username,
+        email,
+        password,
+        country,
+        language,
+        birth_date: birthDate || null,
+      });
+      navigate('/profile', { replace: true });
     } catch (err) {
       setError(err.message || 'Registration failed');
     }
@@ -109,6 +121,49 @@ export default function RegisterPage() {
               onChange={(e) => setConfirm(e.target.value)}
               className="input-field"
               required
+            />
+          </div>
+
+          <div>
+            <label className="font-body text-xs text-ink-400 uppercase tracking-wider mb-1 block">Country</label>
+            <select
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              className="select-field"
+              required
+            >
+              <option value="">Select your country</option>
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="font-body text-xs text-ink-400 uppercase tracking-wider mb-1 block">Language you write in</label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="select-field"
+              required
+            >
+              <option value="">Select language</option>
+              {LANGUAGES.map((l) => (
+                <option key={l.value} value={l.value}>{l.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="font-body text-xs text-ink-400 uppercase tracking-wider mb-1 block">
+              Date of birth <span className="normal-case text-ink-600">(optional)</span>
+            </label>
+            <input
+              type="date"
+              value={birthDate}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setBirthDate(e.target.value)}
+              className="input-field"
             />
           </div>
 

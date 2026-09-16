@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useUser } from '../../context/UserContext';
 import { apiSubmissions, apiCategories } from '../../api/client';
-import { LANGUAGES } from '../../utils/helpers';
+import { LANGUAGES, SUBMISSION_TYPES } from '../../utils/helpers';
 
 const EASE = [0.22, 1, 0.36, 1];
 
-const emptyState = { title: '', text: '', original_text: '', language: 'english', category_id: '' };
+const emptyState = { title: '', text: '', original_text: '', language: 'english', type: 'poetry', category_id: '' };
 
 export default function SubmitWritingPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEdit = !!id;
   const { user, loading: authLoading } = useUser();
   const [form, setForm] = useState(emptyState);
   const [categories, setCategories] = useState([]);
@@ -27,6 +30,29 @@ export default function SubmitWritingPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (!isEdit || !user) return;
+    (async () => {
+      try {
+        const s = await apiSubmissions.getMine(id);
+        if (s.status !== 'pending' && s.status !== 'rejected') {
+          setError('Only pending or rejected submissions can be edited');
+          return;
+        }
+        setForm({
+          title: s.title || '',
+          text: s.text || '',
+          original_text: s.original_text || '',
+          language: s.language || 'english',
+          type: s.type || 'poetry',
+          category_id: s.category_id || '',
+        });
+      } catch {
+        setError('Failed to load submission');
+      }
+    })();
+  }, [isEdit, id, user]);
+
   const handleChange = (e) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
   };
@@ -37,13 +63,19 @@ export default function SubmitWritingPage() {
     if (!form.text.trim()) return setError('Please write something');
     setSubmitting(true);
     try {
-      await apiSubmissions.create({
+      const payload = {
         title: form.title,
         text: form.text,
         original_text: form.original_text,
         language: form.language,
+        type: form.type,
         category_id: form.category_id || null,
-      });
+      };
+      if (isEdit) {
+        await apiSubmissions.updateMine(id, payload);
+      } else {
+        await apiSubmissions.create(payload);
+      }
       setDone(true);
     } catch (err) {
       setError(err.message || 'Submission failed');
@@ -90,14 +122,18 @@ export default function SubmitWritingPage() {
           <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-emerald-900/30 border border-emerald-800/40 flex items-center justify-center">
             <i className="fa-solid fa-feather-pointed text-emerald-400 text-xl" aria-hidden="true"></i>
           </div>
-          <h1 className="font-display text-3xl font-light text-ink-100 mb-3">Your words are on their way</h1>
+          <h1 className="font-display text-3xl font-light text-ink-100 mb-3">
+            {isEdit ? 'Your words are on their way' : 'Your words are on their way'}
+          </h1>
           <p className="font-body text-ink-400 mb-8">
-            We'll review your submission. You can follow its status from your submissions page at any time.
+            {isEdit
+              ? "We've received your updated writing and it's back in the review queue. Follow its status from your submissions page."
+              : "We'll review your submission. You can follow its status from your submissions page at any time."}
           </p>
           <div className="flex flex-col gap-3">
             <Link to="/my-submissions" className="btn-primary w-full">View my submissions</Link>
-            <button type="button" onClick={() => { setDone(false); setForm(emptyState); }} className="btn-ghost">
-              Submit another
+            <button type="button" onClick={() => { setDone(false); if (!isEdit) setForm(emptyState); }} className="btn-ghost">
+              {isEdit ? 'Continue editing' : 'Submit another'}
             </button>
           </div>
         </motion.div>
@@ -115,14 +151,15 @@ export default function SubmitWritingPage() {
           className="text-center mb-10"
         >
           <span className="font-body text-xs uppercase tracking-[0.3em] text-gold-500/60 mb-4 block">
-            Contribute
+            {isEdit ? 'Edit' : 'Contribute'}
           </span>
           <h1 className="font-display text-4xl md:text-5xl font-light text-ink-100 mb-4">
-            Share your writing
+            {isEdit ? 'Edit your writing' : 'Share your writing'}
           </h1>
           <p className="font-body text-ink-400 max-w-md mx-auto">
-            Your words will be reviewed by our editors. Once approved, they appear in the archive,
-            credited to you.
+            {isEdit
+              ? 'Refine your piece and it will be sent back to our editors for a fresh review.'
+              : 'Your words will be reviewed by our editors. Once approved, they appear in the archive, credited to you.'}
           </p>
         </motion.div>
 
@@ -174,6 +211,15 @@ export default function SubmitWritingPage() {
             />
           </div>
 
+          <div>
+            <label className="font-body text-xs text-ink-400 uppercase tracking-wider mb-1 block">Type of writing</label>
+            <select name="type" value={form.type} onChange={handleChange} className="select-field">
+              {SUBMISSION_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
               <label className="font-body text-xs text-ink-400 uppercase tracking-wider mb-1 block">Language</label>
@@ -196,7 +242,7 @@ export default function SubmitWritingPage() {
           </div>
 
           <button type="submit" disabled={submitting} className="w-full btn-primary">
-            {submitting ? 'Submitting...' : 'Submit for review'}
+            {submitting ? (isEdit ? 'Saving...' : 'Submitting...') : isEdit ? 'Save changes' : 'Submit for review'}
           </button>
         </motion.form>
       </div>

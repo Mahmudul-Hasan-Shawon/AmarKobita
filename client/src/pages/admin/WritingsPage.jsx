@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiWritings, apiAuthors } from '../../api/client';
 import Pagination from '../../components/ui/Pagination';
-import { debounce, formatShortDate, capitalizeFirst, LANGUAGES } from '../../utils/helpers';
+import { debounce, formatShortDate, capitalizeFirst, LANGUAGES, WRITING_TYPES } from '../../utils/helpers';
 import { Stagger, Item } from '../../components/ui/motion.jsx';
 
 export default function WritingsPage() {
@@ -131,14 +131,9 @@ export default function WritingsPage() {
         </select>
         <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="select-field max-w-[150px]">
           <option value="">All Types</option>
-          <option value="quote">Quote</option>
-          <option value="poetry">Poetry</option>
-          <option value="verse">Verse</option>
-          <option value="ghazal">Ghazal</option>
-          <option value="proverb">Proverb</option>
-          <option value="wisdom">Wisdom</option>
-          <option value="reflection">Reflection</option>
-          <option value="letter">Letter</option>
+          {WRITING_TYPES.map((t) => (
+            <option key={t.value} value={t.value}>{t.label}</option>
+          ))}
         </select>
         <select value={languageFilter} onChange={(e) => setLanguageFilter(e.target.value)} className="select-field max-w-[150px]">
           <option value="">All Languages</option>

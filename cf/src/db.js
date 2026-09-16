@@ -20,3 +20,8 @@ export async function run(db, sql, params = []) {
     changes: res.meta.changes ?? 0,
   };
 }
+
+export async function batch(db, statements) {
+  const prepared = statements.map(([sql, params = []]) => stmt(db, sql, params));
+  await db.batch(prepared);
+}

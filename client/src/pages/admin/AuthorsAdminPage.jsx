@@ -19,7 +19,7 @@ export default function AuthorsAdminPage() {
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (id, name) => {
-    if (!confirm(`Delete author "${name}"? Their writings will not be deleted.`)) return;
+    if (!confirm(`Delete author "${name}" permanently?\n\nThis also deletes all of their writings, and if it's a community account, the linked user login and submissions. This cannot be undone.`)) return;
     try {
       await apiAuthors.delete(id);
       load();
@@ -47,6 +47,7 @@ export default function AuthorsAdminPage() {
               <th>Country</th>
               <th>Language</th>
               <th>Writings</th>
+              <th>User link</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -69,6 +70,13 @@ export default function AuthorsAdminPage() {
                 <td className="text-ink-400">{author.country || '—'}</td>
                 <td className="text-ink-400">{languageLabel(author.primary_language)}</td>
                 <td className="text-ink-400">{author.writing_count}</td>
+                <td className="text-ink-400">
+                  {author.user_id ? (
+                    <Link to={`/admin/users?q=${author.user_id}`} className="text-gold-400 hover:text-gold-300 text-xs transition-colors">#{author.user_id}</Link>
+                  ) : (
+                    <span className="text-ink-600 text-xs">—</span>
+                  )}
+                </td>
                 <td>
                   <div className="flex items-center gap-3">
                     <Link to={`/admin/authors/${author.id}/edit`} className="text-ink-400 hover:text-gold-400 text-xs transition-colors">Edit</Link>

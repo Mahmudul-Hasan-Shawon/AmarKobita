@@ -1,6 +1,11 @@
 import { all, one, run } from '../db.js';
 import { ok, fail, readBody, slugify, generateUniqueSlug } from '../util.js';
 
+const RTL_LANGUAGES = [
+  'arabic', 'balochi', 'dari', 'hebrew', 'kurdish', 'pashto',
+  'persian', 'sindhi', 'urdu', 'uyghur',
+];
+
 async function enrichSubmission(db, submission) {
   if (!submission) return null;
   const user = await one(db, 'SELECT id, username, email FROM users WHERE id = ?', [submission.user_id]);
@@ -22,19 +27,20 @@ export const routes = [
       const { db, siteUser } = ctx;
       const body = await readBody(ctx.request);
       try {
-        const { title, text, original_text, language, category_id } = body;
+        const { title, text, original_text, language, type, category_id } = body;
         if (!text || !text.trim()) return fail('Text is required', 400);
 
         const result = await run(
           db,
-          `INSERT INTO submissions (user_id, title, text, original_text, language, category_id)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO submissions (user_id, title, text, original_text, language, type, category_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             siteUser.id,
             title || null,
             text.trim(),
             original_text || null,
             language || 'english',
+            type || 'poetry',
             category_id || null,
           ]
         );
@@ -82,6 +88,50 @@ export const routes = [
         return ok(await enrichSubmission(db, submission));
       } catch {
         return fail('Failed to fetch submission', 500);
+      }
+    },
+  },
+  {
+    method: 'PUT',
+    path: '/api/submissions/mine/:id',
+    userAuth: true,
+    handler: async (ctx) => {
+      const { db, siteUser, params } = ctx;
+      const body = await readBody(ctx.request);
+      try {
+        const submission = await one(
+          db,
+          'SELECT * FROM submissions WHERE id = ? AND user_id = ?',
+          [params.id, siteUser.id]
+        );
+        if (!submission) return fail('Submission not found', 404);
+        if (submission.status !== 'pending' && submission.status !== 'rejected') {
+          return fail('Only pending or rejected submissions can be edited', 400);
+        }
+
+        const { title, text, original_text, language, type, category_id } = body || {};
+        if (!text || !text.trim()) return fail('Text is required', 400);
+
+        await run(
+          db,
+          `UPDATE submissions SET title = ?, text = ?, original_text = ?, language = ?, type = ?,
+           category_id = ?, status = 'pending', admin_note = NULL, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+          [
+            title || null,
+            text.trim(),
+            original_text || null,
+            language || submission.language || 'english',
+            type || submission.type || 'poetry',
+            category_id || null,
+            params.id,
+          ]
+        );
+
+        const updated = await one(db, 'SELECT * FROM submissions WHERE id = ?', [params.id]);
+        return ok(await enrichSubmission(db, updated));
+      } catch {
+        return fail('Failed to update submission', 500);
       }
     },
   },
@@ -183,17 +233,50 @@ export const routes = [
           return fail('Only pending submissions can be approved', 400);
         }
 
-        const user = await one(db, 'SELECT id, username FROM users WHERE id = ?', [submission.user_id]);
+        const user = await one(db, 'SELECT * FROM users WHERE id = ?', [submission.user_id]);
 
-        let author = await one(db, 'SELECT id FROM authors WHERE name = ?', [user.username]);
+        let author = await one(db, 'SELECT id, name, user_id FROM authors WHERE user_id = ?', [user.id]);
         if (!author) {
-          const slug = await generateUniqueSlug(db, 'authors', slugify(user.username));
+          author = await one(
+            db,
+            'SELECT id, name, user_id FROM authors WHERE name = ? ORDER BY (CASE WHEN user_id IS NOT NULL THEN 0 ELSE 1 END), id LIMIT 1',
+            [user.display_name || user.username]
+          );
+        }
+        if (!author) {
+          const slug = await generateUniqueSlug(db, 'authors', slugify(user.display_name || user.username));
           const result = await run(
             db,
-            'INSERT INTO authors (name, slug, short_bio) VALUES (?, ?, ?)',
-            [user.username, slug, 'Community contributor. Published on AmarKobita.']
+            `INSERT INTO authors (user_id, name, slug, short_bio, birth_date, country, primary_language, portrait)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              user.id,
+              user.display_name || user.username,
+              slug,
+              user.short_bio || 'Community contributor. Published on AmarKobita.',
+              user.birth_date || null,
+              user.country || null,
+              user.language || null,
+              user.portrait || null,
+            ]
           );
-          author = { id: result.lastInsertRowid };
+          author = { id: result.lastInsertRowid, user_id: user.id };
+        } else if ((user.display_name || user.username) !== author.name) {
+          await run(
+            db,
+            `UPDATE authors SET user_id = ?, name = ?, country = COALESCE(?, country), primary_language = COALESCE(?, primary_language),
+             birth_date = COALESCE(?, birth_date), short_bio = COALESCE(?, short_bio), portrait = COALESCE(?, portrait),
+             updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+            [
+              user.id,
+              user.display_name || user.username,
+              user.country, user.language, user.birth_date, user.short_bio, user.portrait,
+              author.id,
+            ]
+          );
+          author = await one(db, 'SELECT id, name, user_id FROM authors WHERE id = ?', [author.id]);
+        } else if (!author.user_id) {
+          await run(db, 'UPDATE authors SET user_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [user.id, author.id]);
         }
 
         const writingSlug = await generateUniqueSlug(
@@ -201,17 +284,18 @@ export const routes = [
           'writings',
           slugify(submission.title || submission.text.substring(0, 80))
         );
-        const rtl = ['urdu', 'arabic', 'persian'].includes((submission.language || 'english').toLowerCase());
+        const rtl = RTL_LANGUAGES.includes((submission.language || 'english').toLowerCase());
         const writingResult = await run(
           db,
           `INSERT INTO writings (author_id, title, slug, text, original_text, type, language, direction, status, verification_status, date)
-           VALUES (?, ?, ?, ?, ?, 'poetry', ?, ?, 'draft', 'unverified', ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft', 'unverified', ?)`,
           [
             author.id,
             submission.title || null,
             writingSlug,
             submission.text,
             submission.original_text || null,
+            submission.type || 'poetry',
             submission.language || 'english',
             rtl ? 'rtl' : 'ltr',
             new Date().toISOString().split('T')[0],

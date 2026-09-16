@@ -5,6 +5,11 @@ import { slugify, generateUniqueSlug } from './writings.js';
 
 const router = Router();
 
+const RTL_LANGUAGES = [
+  'arabic', 'balochi', 'dari', 'hebrew', 'kurdish', 'pashto',
+  'persian', 'sindhi', 'urdu', 'uyghur',
+];
+
 function enrichSubmission(db, submission) {
   if (!submission) return null;
   const user = db.prepare('SELECT id, username, email FROM users WHERE id = ?').get(submission.user_id);
@@ -20,19 +25,20 @@ function enrichSubmission(db, submission) {
 // User: create submission
 router.post('/', userAuthMiddleware, (req, res) => {
   try {
-    const { title, text, original_text, language, category_id } = req.body;
+    const { title, text, original_text, language, type, category_id } = req.body;
     if (!text || !text.trim()) return res.status(400).json({ error: 'Text is required' });
 
     const db = getDb();
     const result = db.prepare(`
-      INSERT INTO submissions (user_id, title, text, original_text, language, category_id)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO submissions (user_id, title, text, original_text, language, type, category_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
       req.user.id,
       title || null,
       text.trim(),
       original_text || null,
       language || 'english',
+      type || 'poetry',
       category_id || null
     );
 
@@ -65,6 +71,40 @@ router.get('/mine/:id', userAuthMiddleware, (req, res) => {
     res.json(enrichSubmission(db, submission));
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch submission' });
+  }
+});
+
+// User: update own pending/rejected submission
+router.put('/mine/:id', userAuthMiddleware, (req, res) => {
+  try {
+    const db = getDb();
+    const submission = db.prepare('SELECT * FROM submissions WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+    if (!submission) return res.status(404).json({ error: 'Submission not found' });
+    if (submission.status !== 'pending' && submission.status !== 'rejected') {
+      return res.status(400).json({ error: 'Only pending or rejected submissions can be edited' });
+    }
+
+    const { title, text, original_text, language, type, category_id } = req.body || {};
+    if (!text || !text.trim()) return res.status(400).json({ error: 'Text is required' });
+
+    db.prepare(`
+      UPDATE submissions SET title = ?, text = ?, original_text = ?, language = ?, type = ?,
+      category_id = ?, status = 'pending', admin_note = NULL, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(
+      title || null,
+      text.trim(),
+      original_text || null,
+      language || submission.language || 'english',
+      type || submission.type || 'poetry',
+      category_id || null,
+      req.params.id
+    );
+
+    const updated = db.prepare('SELECT * FROM submissions WHERE id = ?').get(req.params.id);
+    res.json(enrichSubmission(db, updated));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update submission' });
   }
 });
 
@@ -149,29 +189,60 @@ router.post('/admin/:id/approve', authMiddleware, (req, res) => {
       return res.status(400).json({ error: 'Only pending submissions can be approved' });
     }
 
-    const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(submission.user_id);
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(submission.user_id);
 
-    let author = db.prepare('SELECT id FROM authors WHERE name = ?').get(user.username);
+    let author = db
+      .prepare('SELECT id, name, user_id FROM authors WHERE user_id = ?')
+      .get(user.id);
     if (!author) {
-      const slug = generateUniqueSlug(db, slugify(user.username));
+      author = db
+        .prepare('SELECT id, name, user_id FROM authors WHERE name = ? ORDER BY (CASE WHEN user_id IS NOT NULL THEN 0 ELSE 1 END), id LIMIT 1')
+        .get(user.display_name || user.username);
+    }
+    if (!author) {
+      const slug = generateUniqueSlug(db, slugify(user.display_name || user.username));
       const result = db.prepare(`
-        INSERT INTO authors (name, slug, short_bio)
-        VALUES (?, ?, ?)
-      `).run(user.username, slug, 'Community contributor. Published on AmarKobita.');
-      author = { id: result.lastInsertRowid };
+        INSERT INTO authors (user_id, name, slug, short_bio, birth_date, country, primary_language, portrait)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        user.id,
+        user.display_name || user.username,
+        slug,
+        user.short_bio || 'Community contributor. Published on AmarKobita.',
+        user.birth_date || null,
+        user.country || null,
+        user.language || null,
+        user.portrait || null
+      );
+      author = { id: result.lastInsertRowid, user_id: user.id };
+    } else if ((user.display_name || user.username) !== author.name) {
+      db.prepare(`
+        UPDATE authors SET user_id = ?, name = ?, country = COALESCE(?, country), primary_language = COALESCE(?, primary_language),
+        birth_date = COALESCE(?, birth_date), short_bio = COALESCE(?, short_bio), portrait = COALESCE(?, portrait),
+        updated_at = CURRENT_TIMESTAMP WHERE id = ?
+      `).run(
+        user.id,
+        user.display_name || user.username,
+        user.country, user.language, user.birth_date, user.short_bio, user.portrait,
+        author.id
+      );
+      author = db.prepare('SELECT id, name FROM authors WHERE id = ?').get(author.id);
+    } else if (!author.user_id) {
+      db.prepare('UPDATE authors SET user_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(user.id, author.id);
     }
 
     const writingSlug = generateUniqueSlug(db, slugify(submission.title || submission.text.substring(0, 80)));
-    const rtl = ['urdu', 'arabic', 'persian'].includes((submission.language || 'english').toLowerCase());
+    const rtl = RTL_LANGUAGES.includes((submission.language || 'english').toLowerCase());
     const writingResult = db.prepare(`
       INSERT INTO writings (author_id, title, slug, text, original_text, type, language, direction, status, verification_status, date)
-      VALUES (?, ?, ?, ?, ?, 'poetry', ?, ?, 'draft', 'unverified', ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft', 'unverified', ?)
     `).run(
       author.id,
       submission.title || null,
       writingSlug,
       submission.text,
       submission.original_text || null,
+      submission.type || 'poetry',
       submission.language || 'english',
       rtl ? 'rtl' : 'ltr',
       new Date().toISOString().split('T')[0]

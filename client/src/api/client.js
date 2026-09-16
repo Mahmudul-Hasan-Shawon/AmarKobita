@@ -54,12 +54,12 @@ export const apiAuth = {
 };
 
 export const apiUserAuth = {
-  register: (username, email, password) =>
-    api.post('/user-auth/register', { username, email, password }),
+  register: (data) => api.post('/user-auth/register', data),
   login: (username, password) =>
     api.post('/user-auth/login', { username, password }),
   logout: () => api.post('/user-auth/logout'),
   me: () => api.get('/user-auth/me'),
+  updateProfile: (data) => api.put('/user-auth/profile', data),
   resetPassword: (username, token, newPassword) =>
     api.post('/user-auth/reset-password', { username, token, new_password: newPassword }),
   admin: {
@@ -69,12 +69,15 @@ export const apiUserAuth = {
     },
     generateResetToken: (username) =>
       api.post('/user-auth/admin/reset-token', { username }),
+    deleteUser: (id) => api.delete(`/user-auth/admin/users/${id}`),
   },
 };
 
 export const apiSubmissions = {
   create: (data) => api.post('/submissions', data),
   mine: () => api.get('/submissions/mine'),
+  getMine: (id) => api.get(`/submissions/mine/${id}`),
+  updateMine: (id, data) => api.put(`/submissions/mine/${id}`, data),
   deleteMine: (id) => api.delete(`/submissions/mine/${id}`),
   admin: {
     list: (params = {}) => {

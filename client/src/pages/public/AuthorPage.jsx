@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { apiAuthors } from '../../api/client';
 import QuoteCard from '../../components/quotes/QuoteCard';
 import { Skeleton, QuoteCardSkeleton } from '../../components/ui/Skeletons';
-import { languageLabel } from '../../utils/helpers';
+import { languageLabel, friendlyDate } from '../../utils/helpers';
 
 export default function AuthorPage() {
   const { slug } = useParams();
@@ -65,7 +65,11 @@ export default function AuthorPage() {
 
           {(author.birth_date || author.death_date) && (
             <p className="font-body text-sm text-ink-400 mb-3">
-              {author.birth_date || '?'} — {author.death_date || '?'}
+              {author.death_date
+                ? `${friendlyDate(author.birth_date) || author.birth_date || '?'} — ${friendlyDate(author.death_date) || author.death_date || '?'}`
+                : author.birth_date
+                ? `Born ${friendlyDate(author.birth_date) || author.birth_date}`
+                : ''}
             </p>
           )}
 

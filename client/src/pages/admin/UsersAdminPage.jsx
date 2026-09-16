@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiUserAuth } from '../../api/client';
 import { Stagger, Item } from '../../components/ui/motion.jsx';
 
 export default function UsersAdminPage() {
+  const [searchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('q') || '');
   const [busyId, setBusyId] = useState(null);
   const [tokenBox, setTokenBox] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -21,8 +23,8 @@ export default function UsersAdminPage() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    load(searchParams.get('q') || '');
+  }, [load, searchParams]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -51,6 +53,20 @@ export default function UsersAdminPage() {
     } catch {}
   };
 
+  const handleDelete = async (user) => {
+    if (!confirm(
+      `Delete user "@${user.username}" (#${user.id}) permanently?\n\n` +
+      'This removes their login and password, all their submissions, and if they have a published author ' +
+      'page, that author and all linked writings are deleted too. This cannot be undone.'
+    )) return;
+    try {
+      await apiUserAuth.admin.deleteUser(user.id);
+      setUsers((current) => current.filter((u) => u.id !== user.id));
+    } catch (err) {
+      alert(err.message || 'Failed to delete user');
+    }
+  };
+
   const formatDate = (d) => {
     if (!d) return '';
     const iso = d.includes('T') ? d : d.replace(' ', 'T');
@@ -75,7 +91,7 @@ export default function UsersAdminPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by username or email"
+              placeholder="Search by username, email, or ID"
               className="input-field flex-1"
             />
             <button type="submit" className="btn-primary text-xs whitespace-nowrap">Search</button>
@@ -118,19 +134,29 @@ export default function UsersAdminPage() {
               className="flex items-center justify-between p-4 bg-ink-900/30 border border-ink-800/30 rounded-sm"
             >
               <div className="min-w-0">
-                <span className="font-body text-sm text-ink-100 block truncate">@{user.username}</span>
+                <span className="font-body text-sm text-ink-100 block truncate">
+                  <span className="text-gold-400">#{user.id}</span> @{user.username}
+                </span>
                 <span className="font-body text-xs text-ink-500 block truncate">
                   {user.email || <em className="text-ink-600">no email</em>}
                   {user.created_at ? ` · joined ${formatDate(user.created_at)}` : ''}
                 </span>
               </div>
-              <button
-                onClick={() => handleGenerate(user)}
-                disabled={busyId === user.id}
-                className="btn-ghost text-xs whitespace-nowrap ml-4"
-              >
-                {busyId === user.id ? 'Generating...' : 'Generate reset token'}
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => handleGenerate(user)}
+                  disabled={busyId === user.id}
+                  className="btn-ghost text-xs whitespace-nowrap"
+                >
+                  {busyId === user.id ? 'Generating...' : 'Generate reset token'}
+                </button>
+                <button
+                  onClick={() => handleDelete(user)}
+                  className="text-ink-500 hover:text-red-400 transition-colors text-xs whitespace-nowrap"
+                >
+                  Delete
+                </button>
+              </div>
             </Item>
           ))}
         </div>

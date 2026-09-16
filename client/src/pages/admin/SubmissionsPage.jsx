@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { apiSubmissions } from '../../api/client';
 import Pagination from '../../components/ui/Pagination';
-import { formatShortDate, languageLabel } from '../../utils/helpers';
+import { formatShortDate, languageLabel, writingTypeLabel } from '../../utils/helpers';
 import { Stagger, Item } from '../../components/ui/motion.jsx';
 
 const TABS = [
@@ -130,6 +130,7 @@ export default function SubmissionsPage() {
               <tr>
                 <th>Submitter</th>
                 <th>Writing</th>
+                <th>Type</th>
                 <th>Language</th>
                 <th>Status</th>
                 <th>Submitted</th>
@@ -175,6 +176,7 @@ export default function SubmissionsPage() {
                       </div>
                     )}
                   </td>
+                  <td className="text-ink-400 text-sm">{writingTypeLabel(s.type)}</td>
                   <td className="text-ink-400 text-sm">{languageLabel(s.language)}</td>
                   <td><span className={`badge badge-${s.status}`}>{STATUS_LABELS[s.status]}</span></td>
                   <td className="text-ink-500 text-xs">{formatShortDate(s.created_at)}</td>

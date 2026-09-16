@@ -125,13 +125,49 @@ router.put('/:id', authMiddleware, (req, res) => {
   }
 });
 
-// Admin: delete author
+// Admin: delete author + all linked content
 router.delete('/:id', authMiddleware, (req, res) => {
   try {
     const db = getDb();
-    const result = db.prepare('DELETE FROM authors WHERE id = ?').run(req.params.id);
-    if (result.changes === 0) return res.status(404).json({ error: 'Author not found' });
-    res.json({ message: 'Author deleted' });
+    const author = db.prepare('SELECT * FROM authors WHERE id = ?').get(req.params.id);
+    if (!author) return res.status(404).json({ error: 'Author not found' });
+
+    const remove = db.transaction(() => {
+      // Find the linked community account (exact via user_id, fallback by name for legacy rows)
+      let user = null;
+      if (author.user_id) {
+        user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(author.user_id);
+      } else {
+        user = db.prepare(
+          'SELECT id, username FROM users WHERE username = ? OR display_name = ? ORDER BY id LIMIT 1'
+        ).get(author.name, author.name);
+      }
+
+      const writings = db.prepare('SELECT id FROM writings WHERE author_id = ?').all(author.id);
+
+      // Delete all writings (cascades to writing_categories, collection_writings, daily_words)
+      db.prepare('DELETE FROM writings WHERE author_id = ?').run(author.id);
+
+      // Delete the author
+      db.prepare('DELETE FROM authors WHERE id = ?').run(author.id);
+
+      // Delete the linked user account (cascades to submissions + password_reset_tokens)
+      let userDeleted = false;
+      if (user) {
+        db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
+        userDeleted = true;
+      }
+
+      return {
+        author: { id: author.id, name: author.name },
+        deletedWritings: writings.length,
+        userDeleted,
+        user: user ? { id: user.id, username: user.username } : null,
+      };
+    });
+
+    const result = remove();
+    res.json({ message: 'Author and all related content deleted', ...result });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete author' });
   }

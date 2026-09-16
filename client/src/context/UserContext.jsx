@@ -22,10 +22,10 @@ export function UserProvider({ children }) {
     }
   }
 
-  async function register(username, email, password) {
-    const data = await apiUserAuth.register(username, email, password);
-    setUser(data.user);
-    return data;
+  async function register(data) {
+    const res = await apiUserAuth.register(data);
+    setUser(res.user);
+    return res;
   }
 
   async function login(username, password) {
@@ -34,13 +34,19 @@ export function UserProvider({ children }) {
     return data;
   }
 
+  async function updateProfile(data) {
+    const res = await apiUserAuth.updateProfile(data);
+    setUser(res.user);
+    return res;
+  }
+
   async function logout() {
     await apiUserAuth.logout();
     setUser(null);
   }
 
   return (
-    <UserContext.Provider value={{ user, loading, register, login, logout, isUser: !!user }}>
+    <UserContext.Provider value={{ user, loading, register, login, updateProfile, logout, isUser: !!user }}>
       {children}
     </UserContext.Provider>
   );

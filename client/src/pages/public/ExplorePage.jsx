@@ -5,7 +5,7 @@ import { apiWritings, apiCategories, apiAuthors } from '../../api/client';
 import QuoteCard from '../../components/quotes/QuoteCard';
 import Pagination from '../../components/ui/Pagination';
 import { QuoteCardSkeleton } from '../../components/ui/Skeletons';
-import { debounce } from '../../utils/helpers';
+import { debounce, LANGUAGES } from '../../utils/helpers';
 
 export default function ExplorePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -96,13 +96,7 @@ export default function ExplorePage() {
 
   const languages = [
     { value: '', label: 'All Languages' },
-    { value: 'english', label: 'English' },
-    { value: 'bangla', label: 'Bengali' },
-    { value: 'urdu', label: 'Urdu' },
-    { value: 'persian', label: 'Persian' },
-    { value: 'arabic', label: 'Arabic' },
-    { value: 'hindi', label: 'Hindi' },
-    { value: 'spanish', label: 'Spanish' },
+    ...LANGUAGES.map((l) => ({ value: l.value, label: l.label })),
   ];
 
   const activeType = types.find((t) => t.value === currentType);

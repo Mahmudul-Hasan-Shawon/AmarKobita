@@ -125,11 +125,11 @@ export default function PublicLayout() {
                   Write
                 </Link>
                 <Link
-                  to="/my-submissions"
+                  to="/profile"
                   className="w-8 h-8 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-gold-400 text-xs font-semibold hover:bg-gold-500/25 transition-colors"
-                  title="My submissions"
+                  title="Your profile"
                 >
-                  {user.username.charAt(0).toUpperCase()}
+                  {(user.display_name || user.username).charAt(0).toUpperCase()}
                 </Link>
                 <button
                   onClick={logout}
@@ -221,6 +221,9 @@ export default function PublicLayout() {
                     >
                       {user ? (
                         <div className="flex items-center justify-center gap-6 mt-6">
+                          <Link to="/profile" className="font-body text-lg text-ink-300 hover:text-gold-400 transition-colors duration-300">
+                            Profile
+                          </Link>
                           <Link to="/my-submissions" className="font-body text-lg text-ink-300 hover:text-gold-400 transition-colors duration-300">
                             My submissions
                           </Link>

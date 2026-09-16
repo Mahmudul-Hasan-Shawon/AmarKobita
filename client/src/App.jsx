@@ -16,6 +16,7 @@ import UserLoginPage from './pages/public/UserLoginPage';
 import ResetPasswordPage from './pages/public/ResetPasswordPage';
 import SubmitWritingPage from './pages/public/SubmitWritingPage';
 import MySubmissionsPage from './pages/public/MySubmissionsPage';
+import ProfilePage from './pages/public/ProfilePage';
 import LoginPage from './pages/admin/LoginPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import SubmissionsPage from './pages/admin/SubmissionsPage';
@@ -56,7 +57,9 @@ export default function App() {
         <Route path="/login" element={<UserLoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/submit" element={<SubmitWritingPage />} />
+        <Route path="/submit/:id" element={<SubmitWritingPage />} />
         <Route path="/my-submissions" element={<MySubmissionsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Route>
 
       <Route path="/admin/login" element={<LoginPage />} />

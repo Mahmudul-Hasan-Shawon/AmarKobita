@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useUser } from '../../context/UserContext';
 import { apiSubmissions } from '../../api/client';
-import { formatDate, languageLabel } from '../../utils/helpers';
+import { formatDate, languageLabel, writingTypeLabel } from '../../utils/helpers';
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -134,7 +134,8 @@ export default function MySubmissionsPage() {
                         {s.title || 'Untitled'}
                       </h3>
                       <p className="font-body text-xs text-ink-500 mb-3">
-                        {languageLabel(s.language)}
+                        {writingTypeLabel(s.type)}
+                        {s.language ? ` · ${languageLabel(s.language)}` : ''}
                         {s.category ? ` · ${s.category.name}` : ''} · {formatDate(s.created_at)}
                       </p>
                     </div>
@@ -166,14 +167,31 @@ export default function MySubmissionsPage() {
                   )}
 
                   {s.status === 'pending' && (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(s.id)}
-                      disabled={deletingId === s.id}
-                      className="text-ink-500 hover:text-red-400 transition-colors text-xs font-body"
+                    <div className="flex items-center gap-4">
+                      <Link
+                        to={`/submit/${s.id}`}
+                        className="text-gold-400 hover:text-gold-300 transition-colors text-xs font-body"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(s.id)}
+                        disabled={deletingId === s.id}
+                        className="text-ink-500 hover:text-red-400 transition-colors text-xs font-body"
+                      >
+                        {deletingId === s.id ? 'Deleting...' : 'Withdraw submission'}
+                      </button>
+                    </div>
+                  )}
+
+                  {s.status === 'rejected' && (
+                    <Link
+                      to={`/submit/${s.id}`}
+                      className="text-gold-400 hover:text-gold-300 transition-colors text-xs font-body inline-block"
                     >
-                      {deletingId === s.id ? 'Deleting...' : 'Withdraw submission'}
-                    </button>
+                      Revise and resubmit
+                    </Link>
                   )}
                 </motion.div>
               ))}

@@ -27,6 +27,12 @@ function initDb() {
       username TEXT UNIQUE NOT NULL,
       email TEXT,
       password_hash TEXT NOT NULL,
+      display_name TEXT,
+      birth_date TEXT,
+      country TEXT,
+      language TEXT DEFAULT 'english',
+      short_bio TEXT,
+      portrait TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -37,11 +43,13 @@ function initDb() {
       text TEXT NOT NULL,
       original_text TEXT,
       language TEXT DEFAULT 'english',
+      type TEXT DEFAULT 'poetry',
       category_id INTEGER,
       status TEXT DEFAULT 'pending',
       admin_note TEXT,
       writing_id INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       reviewed_at DATETIME,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
@@ -57,6 +65,7 @@ function initDb() {
 
     CREATE TABLE IF NOT EXISTS authors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
       name TEXT NOT NULL,
       slug TEXT UNIQUE NOT NULL,
       short_bio TEXT,
@@ -69,7 +78,8 @@ function initDb() {
       other_languages TEXT,
       tags TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS categories (
@@ -175,6 +185,32 @@ function initDb() {
   if (!writingCols.some((c) => c.name === 'date')) {
     db.exec(`ALTER TABLE writings ADD COLUMN date TEXT;`);
   }
+
+  const userCols = db.prepare(`PRAGMA table_info(users)`).all();
+  if (!userCols.some((c) => c.name === 'display_name')) db.exec(`ALTER TABLE users ADD COLUMN display_name TEXT;`);
+  if (!userCols.some((c) => c.name === 'birth_date')) db.exec(`ALTER TABLE users ADD COLUMN birth_date TEXT;`);
+  if (!userCols.some((c) => c.name === 'country')) db.exec(`ALTER TABLE users ADD COLUMN country TEXT;`);
+  if (!userCols.some((c) => c.name === 'language')) db.exec(`ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'english';`);
+  if (!userCols.some((c) => c.name === 'short_bio')) db.exec(`ALTER TABLE users ADD COLUMN short_bio TEXT;`);
+  if (!userCols.some((c) => c.name === 'portrait')) db.exec(`ALTER TABLE users ADD COLUMN portrait TEXT;`);
+
+  const submissionCols = db.prepare(`PRAGMA table_info(submissions)`).all();
+  if (!submissionCols.some((c) => c.name === 'type')) db.exec(`ALTER TABLE submissions ADD COLUMN type TEXT DEFAULT 'poetry';`);
+  if (!submissionCols.some((c) => c.name === 'updated_at')) db.exec(`ALTER TABLE submissions ADD COLUMN updated_at DATETIME;`);
+
+  const authorCols = db.prepare(`PRAGMA table_info(authors)`).all();
+  if (!authorCols.some((c) => c.name === 'user_id')) db.exec(`ALTER TABLE authors ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;`);
+
+  // Backfill user_id for existing community authors created before the column existed
+  db.prepare(`
+    UPDATE authors SET user_id = (
+      SELECT u.id FROM users u
+      WHERE u.username = authors.name OR u.display_name = authors.name
+      ORDER BY u.id
+      LIMIT 1
+    )
+    WHERE user_id IS NULL
+  `).run();
 
   const adminCount = db.prepare('SELECT COUNT(*) as count FROM admin').get();
   if (adminCount.count === 0) {

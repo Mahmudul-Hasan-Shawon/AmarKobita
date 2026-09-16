@@ -1,4 +1,4 @@
-import { all, one, run } from '../db.js';
+import { all, one, run, batch } from '../db.js';
 import { ok, fail, readBody, slugify, generateUniqueSlug } from '../util.js';
 
 export const routes = [
@@ -130,9 +130,50 @@ export const routes = [
     handler: async (ctx) => {
       const { db, params } = ctx;
       try {
-        const result = await run(db, 'DELETE FROM authors WHERE id = ?', [params.id]);
-        if (result.changes === 0) return fail('Author not found', 404);
-        return ok({ message: 'Author deleted' });
+        const author = await one(db, 'SELECT * FROM authors WHERE id = ?', [params.id]);
+        if (!author) return fail('Author not found', 404);
+
+        // Find the linked community account (exact via user_id, fallback by name for legacy rows)
+        let user = null;
+        if (author.user_id) {
+          user = await one(db, 'SELECT id, username FROM users WHERE id = ?', [author.user_id]);
+        } else {
+          user = await one(
+            db,
+            'SELECT id, username FROM users WHERE username = ? OR display_name = ? ORDER BY id LIMIT 1',
+            [author.name, author.name]
+          );
+        }
+
+        const writings = await all(db, 'SELECT id, slug FROM writings WHERE author_id = ?', [author.id]);
+
+        const statements = [];
+
+        // Delete all writings (cascades to writing_categories, collection_writings, daily_words;
+        // submissions.writing_id detaches via ON DELETE SET NULL)
+        if (writings.length) {
+          statements.push(['DELETE FROM writings WHERE author_id = ?', [author.id]]);
+        }
+
+        // Remove the author
+        statements.push(['DELETE FROM authors WHERE id = ?', [author.id]]);
+
+        // Delete the linked user account (cascades to submissions + password_reset_tokens)
+        let userDeleted = false;
+        if (user) {
+          statements.push(['DELETE FROM users WHERE id = ?', [user.id]]);
+          userDeleted = true;
+        }
+
+        if (statements.length) await batch(db, statements);
+
+        return ok({
+          message: 'Author and all related content deleted',
+          author: { id: author.id, name: author.name },
+          deletedWritings: writings.length,
+          userDeleted,
+          user: user ? { id: user.id, username: user.username } : null,
+        });
       } catch {
         return fail('Failed to delete author', 500);
       }

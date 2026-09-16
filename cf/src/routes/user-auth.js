@@ -29,6 +29,61 @@ function utcNowString() {
   return new Date().toISOString().slice(0, 19).replace('T', ' ');
 }
 
+function cleanStr(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function toProfile(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    display_name: user.display_name || null,
+    email: user.email || null,
+    birth_date: user.birth_date || null,
+    country: user.country || null,
+    language: user.language || 'english',
+    short_bio: user.short_bio || null,
+    portrait: user.portrait || null,
+    created_at: user.created_at || null,
+  };
+}
+
+async function syncAuthorFromUser(db, user) {
+  let author = await one(db, 'SELECT id FROM authors WHERE user_id = ?', [user.id]);
+  if (!author) {
+    author = await one(
+      db,
+      'SELECT id FROM authors WHERE name = ? ORDER BY (CASE WHEN user_id IS NOT NULL THEN 0 ELSE 1 END), id LIMIT 1',
+      [user.display_name || user.username]
+    );
+  }
+  if (!author) return;
+  await run(
+    db,
+    `UPDATE authors SET user_id = ?, name = ?, country = COALESCE(?, country), primary_language = COALESCE(?, primary_language),
+     birth_date = COALESCE(?, birth_date), short_bio = COALESCE(?, short_bio), portrait = COALESCE(?, portrait),
+     updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    [
+      user.id,
+      user.display_name || user.username,
+      user.country, user.language, user.birth_date, user.short_bio, user.portrait,
+      author.id,
+    ]
+  );
+}
+
+async function findAuthorByUser(db, user) {
+  const author = await one(db, 'SELECT slug FROM authors WHERE user_id = ?', [user.id]);
+  if (author) return author;
+  return one(
+    db,
+    'SELECT slug FROM authors WHERE name = ? ORDER BY (CASE WHEN user_id IS NULL THEN 0 ELSE 1 END), id LIMIT 1',
+    [user.display_name || user.username]
+  );
+}
+
 export const routes = [
   {
     method: 'POST',
@@ -37,7 +92,7 @@ export const routes = [
       const { db, env } = ctx;
       const body = await readBody(ctx.request);
       try {
-        const { username, email, password } = body || {};
+        const { username, email, password, display_name, birth_date, country, language, short_bio, portrait } = body || {};
         if (typeof username !== 'string' || username.trim().length < 3) {
           return fail('Username must be at least 3 characters', 400);
         }
@@ -57,13 +112,24 @@ export const routes = [
         const hash = bcrypt.hashSync(password, 10);
         const result = await run(
           db,
-          'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
-          [name, email ? email.trim() : null, hash]
+          `INSERT INTO users (username, email, password_hash, display_name, birth_date, country, language, short_bio, portrait)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            name,
+            email ? email.trim() : null,
+            hash,
+            cleanStr(display_name),
+            cleanStr(birth_date),
+            cleanStr(country),
+            cleanStr(language) || 'english',
+            cleanStr(short_bio),
+            cleanStr(portrait),
+          ]
         );
 
-        const user = await one(db, 'SELECT id, username, email FROM users WHERE id = ?', [result.lastInsertRowid]);
+        const user = await one(db, 'SELECT * FROM users WHERE id = ?', [result.lastInsertRowid]);
         const token = await signToken({ id: user.id, username: user.username }, secret(env));
-        return ok({ user }, 201, userCookie(env, token));
+        return ok({ user: toProfile(user) }, 201, userCookie(env, token));
       } catch {
         return fail('Registration failed', 500);
       }
@@ -86,7 +152,7 @@ export const routes = [
 
         const token = await signToken({ id: user.id, username: user.username }, secret(env));
         return ok(
-          { user: { id: user.id, username: user.username, email: user.email } },
+          { user: toProfile(user) },
           200,
           userCookie(env, token)
         );
@@ -108,9 +174,68 @@ export const routes = [
     userAuth: true,
     handler: async (ctx) => {
       const { db, siteUser } = ctx;
-      const user = await one(db, 'SELECT id, username, email FROM users WHERE id = ?', [siteUser.id]);
+      const user = await one(db, 'SELECT * FROM users WHERE id = ?', [siteUser.id]);
       if (!user) return fail('User not found', 401);
-      return ok({ user });
+      const author = await findAuthorByUser(db, user);
+      const profile = toProfile(user);
+      if (author) {
+        profile.author_slug = author.slug;
+        profile.has_author = true;
+      }
+      return ok({ user: profile });
+    },
+  },
+  {
+    method: 'PUT',
+    path: '/api/user-auth/profile',
+    userAuth: true,
+    handler: async (ctx) => {
+      const { db, siteUser } = ctx;
+      const body = await readBody(ctx.request);
+      try {
+        const user = await one(db, 'SELECT * FROM users WHERE id = ?', [siteUser.id]);
+        if (!user) return fail('User not found', 401);
+
+        const email = cleanStr(body.email);
+        const display_name = cleanStr(body.display_name);
+        const birth_date = cleanStr(body.birth_date);
+        const country = cleanStr(body.country);
+        const language = cleanStr(body.language);
+        const short_bio = cleanStr(body.short_bio);
+        const portrait = cleanStr(body.portrait);
+
+        if (email) {
+          const existingEmail = await one(
+            db,
+            'SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ?',
+            [email, user.id]
+          );
+          if (existingEmail) return fail('Email already registered', 409);
+        }
+
+        await run(
+          db,
+          `UPDATE users SET email = ?, display_name = ?, birth_date = ?, country = ?, language = ?, short_bio = ?, portrait = ?
+           WHERE id = ?`,
+          [
+            email, display_name, birth_date, country, language || 'english', short_bio, portrait,
+            user.id,
+          ]
+        );
+
+        const updated = await one(db, 'SELECT * FROM users WHERE id = ?', [user.id]);
+        await syncAuthorFromUser(db, updated);
+
+        const author = await findAuthorByUser(db, updated);
+        const profile = toProfile(updated);
+        if (author) {
+          profile.author_slug = author.slug;
+          profile.has_author = true;
+        }
+        return ok({ user: profile });
+      } catch {
+        return fail('Failed to update profile', 500);
+      }
     },
   },
   {
@@ -127,9 +252,10 @@ export const routes = [
             db,
             `SELECT id, username, email, created_at FROM users
              WHERE LOWER(username) LIKE LOWER(?) OR LOWER(COALESCE(email, '')) LIKE LOWER(?)
+             OR CAST(id AS TEXT) = ?
              ORDER BY username COLLATE NOCASE
              LIMIT 50`,
-            [`%${search}%`, `%${search}%`]
+            [`%${search}%`, `%${search}%`, search]
           );
         } else {
           rows = await all(
@@ -140,6 +266,60 @@ export const routes = [
         return ok({ users: rows });
       } catch {
         return fail('Failed to load users', 500);
+      }
+    },
+  },
+  {
+    method: 'DELETE',
+    path: '/api/user-auth/admin/users/:id',
+    admin: true,
+    handler: async (ctx) => {
+      const { db, params } = ctx;
+      try {
+        const user = await one(db, 'SELECT * FROM users WHERE id = ?', [params.id]);
+        if (!user) return fail('User not found', 404);
+
+        // Find the linked author (exact via user_id, fallback by name for legacy rows)
+        let author = await one(db, 'SELECT id, name FROM authors WHERE user_id = ?', [user.id]);
+        if (!author) {
+          author = await one(
+            db,
+            'SELECT id, name FROM authors WHERE name = ? ORDER BY (CASE WHEN user_id IS NOT NULL THEN 0 ELSE 1 END), id LIMIT 1',
+            [user.display_name || user.username]
+          );
+        }
+
+        const statements = [];
+
+        let deletedWritings = 0;
+        let authorDeleted = false;
+        if (author) {
+          const writings = await all(db, 'SELECT id, slug FROM writings WHERE author_id = ?', [author.id]);
+          deletedWritings = writings.length;
+
+          // Delete all writings (cascades to writing_categories, collection_writings, daily_words)
+          if (writings.length) {
+            statements.push(['DELETE FROM writings WHERE author_id = ?', [author.id]]);
+          }
+          // Delete the linked author
+          statements.push(['DELETE FROM authors WHERE id = ?', [author.id]]);
+          authorDeleted = true;
+        }
+
+        // Delete the user (cascades to submissions + password_reset_tokens)
+        statements.push(['DELETE FROM users WHERE id = ?', [user.id]]);
+
+        if (statements.length) await batch(db, statements);
+
+        return ok({
+          message: 'User and all related content deleted',
+          user: { id: user.id, username: user.username },
+          authorDeleted,
+          author: author ? { id: author.id, name: author.name } : null,
+          deletedWritings,
+        });
+      } catch {
+        return fail('Failed to delete user', 500);
       }
     },
   },
