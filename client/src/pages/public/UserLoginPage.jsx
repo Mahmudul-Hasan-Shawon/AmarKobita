@@ -70,7 +70,15 @@ export default function UserLoginPage() {
           </div>
 
           <div>
-            <label className="font-body text-xs text-ink-400 uppercase tracking-wider mb-1 block">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-body text-xs text-ink-400 uppercase tracking-wider">Password</label>
+              <Link
+                to="/reset-password"
+                className="font-body text-xs text-ink-500 hover:text-gold-400 transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               value={password}

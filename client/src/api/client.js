@@ -12,11 +12,23 @@ async function request(endpoint, options = {}) {
     config.body = JSON.stringify(config.body);
   }
 
-  const res = await fetch(url, config);
-  const data = await res.json();
+  let res;
+  try {
+    res = await fetch(url, config);
+  } catch {
+    throw new Error('Server unreachable. Is the server running?');
+  }
+
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
 
   if (!res.ok) {
-    throw new Error(data.error || 'Something went wrong');
+    throw new Error((data && data.error) || `Request failed (${res.status}). Server is probably not running.`);
   }
 
   return data;
@@ -48,6 +60,16 @@ export const apiUserAuth = {
     api.post('/user-auth/login', { username, password }),
   logout: () => api.post('/user-auth/logout'),
   me: () => api.get('/user-auth/me'),
+  resetPassword: (username, token, newPassword) =>
+    api.post('/user-auth/reset-password', { username, token, new_password: newPassword }),
+  admin: {
+    users: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return api.get(`/user-auth/admin/users${query ? `?${query}` : ''}`);
+    },
+    generateResetToken: (username) =>
+      api.post('/user-auth/admin/reset-token', { username }),
+  },
 };
 
 export const apiSubmissions = {

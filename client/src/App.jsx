@@ -13,6 +13,7 @@ import SearchPage from './pages/public/SearchPage';
 import AboutPage from './pages/public/AboutPage';
 import RegisterPage from './pages/public/RegisterPage';
 import UserLoginPage from './pages/public/UserLoginPage';
+import ResetPasswordPage from './pages/public/ResetPasswordPage';
 import SubmitWritingPage from './pages/public/SubmitWritingPage';
 import MySubmissionsPage from './pages/public/MySubmissionsPage';
 import LoginPage from './pages/admin/LoginPage';
@@ -24,6 +25,7 @@ import AuthorsAdminPage from './pages/admin/AuthorsAdminPage';
 import AuthorFormPage from './pages/admin/AuthorFormPage';
 import CategoriesAdminPage from './pages/admin/CategoriesAdminPage';
 import CollectionsAdminPage from './pages/admin/CollectionsAdminPage';
+import UsersAdminPage from './pages/admin/UsersAdminPage';
 import CollectionFormPage from './pages/admin/CollectionFormPage';
 import ImportExportPage from './pages/admin/ImportExportPage';
 import ChangePasswordPage from './pages/admin/ChangePasswordPage';
@@ -52,6 +54,7 @@ export default function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/join" element={<RegisterPage />} />
         <Route path="/login" element={<UserLoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/submit" element={<SubmitWritingPage />} />
         <Route path="/my-submissions" element={<MySubmissionsPage />} />
       </Route>
@@ -79,6 +82,7 @@ export default function App() {
         <Route path="collections/new" element={<CollectionFormPage />} />
         <Route path="collections/:id/edit" element={<CollectionFormPage />} />
         <Route path="import-export" element={<ImportExportPage />} />
+        <Route path="users" element={<UsersAdminPage />} />
         <Route path="security" element={<ChangePasswordPage />} />
       </Route>
 
