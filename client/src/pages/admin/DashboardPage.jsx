@@ -26,13 +26,14 @@ export default function DashboardPage() {
     { label: 'Published', value: stats.publishedWritings, color: 'text-emerald-400' },
     { label: 'Drafts', value: stats.draftWritings, color: 'text-amber-400' },
     { label: 'Authors', value: stats.totalAuthors, color: 'text-blue-400' },
+    { label: 'Readers', value: stats.totalUsers, color: 'text-cyan-400' },
+    { label: 'Pending Reviews', value: stats.pendingSubmissions, color: 'text-orange-400' },
     { label: 'Categories', value: stats.totalCategories, color: 'text-purple-400' },
     { label: 'Collections', value: stats.totalCollections, color: 'text-pink-400' },
-    { label: 'Total Views', value: stats.totalViews, color: 'text-cyan-400' },
-    { label: 'Total Saves', value: stats.totalSaves, color: 'text-rose-400' },
   ];
 
   const actions = [
+    { to: '/admin/submissions', label: 'Review Submissions', icon: 'M4 4h16a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zm-1 9h18a1 1 0 011 1v6a1 1 0 01-1 1H3a1 1 0 01-1-1v-6a1 1 0 011-1zm7-7v2m0 4v2' },
     { to: '/admin/writings/new', label: 'New Writing', icon: 'M12 4v16m8-8H4' },
     { to: '/admin/authors/new', label: 'New Author', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
     { to: '/admin/collections/new', label: 'Create Collection', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
@@ -50,7 +51,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-body text-2xl text-ink-100">Dashboard</h1>
-          <p className="font-body text-sm text-ink-500 mt-1">Overview of your poetry archive</p>
+          <p className="font-body text-sm text-ink-500 mt-1">Overview of your archive</p>
         </div>
         <Link to="/admin/writings/new" className="btn-primary text-xs whitespace-nowrap">
           + New Writing

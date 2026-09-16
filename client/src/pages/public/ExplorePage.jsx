@@ -119,7 +119,7 @@ export default function ExplorePage() {
           className="text-center mb-12"
         >
           <span className="font-body text-xs uppercase tracking-[0.3em] text-gold-500/60 mb-4 block">
-            The Archive
+            AmarKobita
           </span>
           <h1 className="font-display text-4xl md:text-5xl font-light text-ink-100 mb-4">
             Explore

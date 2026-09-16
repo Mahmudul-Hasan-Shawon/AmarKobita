@@ -2,12 +2,14 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLenis, useLenisScroll } from '../ui/LenisProvider';
+import { useUser } from '../../context/UserContext';
 
 const navLinks = [
   { to: '/', label: 'Home' },
   { to: '/explore', label: 'Explore' },
   { to: '/authors', label: 'Authors' },
   { to: '/collections', label: 'Collections' },
+  { to: '/submit', label: 'Contribute' },
   { to: '/about', label: 'About' },
 ];
 
@@ -15,6 +17,7 @@ export default function PublicLayout() {
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, logout } = useUser();
   const location = useLocation();
   const lenis = useLenis();
   const { scrollTo, scrollTopInstant } = useLenisScroll();
@@ -85,7 +88,7 @@ export default function PublicLayout() {
 <Link to="/" onClick={handleLogoClick} className="flex items-center group">
               <img
                 src="/Images/logo/logo.svg"
-                alt="The Poetry Archive"
+                alt="AmarKobita"
                 className="h-12 w-auto object-contain"
               />
             </Link>
@@ -112,6 +115,40 @@ export default function PublicLayout() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </Link>
+
+            {user ? (
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/submit"
+                  className="font-body text-sm text-ink-200 hover:text-gold-400 transition-colors duration-300"
+                >
+                  Write
+                </Link>
+                <Link
+                  to="/my-submissions"
+                  className="w-8 h-8 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-gold-400 text-xs font-semibold hover:bg-gold-500/25 transition-colors"
+                  title="My submissions"
+                >
+                  {user.username.charAt(0).toUpperCase()}
+                </Link>
+                <button
+                  onClick={logout}
+                  className="text-ink-400 hover:text-ink-100 transition-colors"
+                  title="Sign out"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="font-body text-sm text-ink-400 hover:text-gold-400 transition-colors duration-300"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
 
           <button
@@ -169,13 +206,39 @@ export default function PublicLayout() {
                     exit={{ opacity: 0, y: 24 }}
                     transition={{ delay: 0.06 * navLinks.length + 0.05 }}
                   >
-                    <Link
+<Link
                       to="/search"
                       className="block font-body text-lg text-ink-400 hover:text-gold-400 mt-6 transition-colors duration-300"
                     >
                       Search
                     </Link>
-                  </motion.div>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 24 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 24 }}
+                      transition={{ delay: 0.06 * navLinks.length + 0.1 }}
+                    >
+                      {user ? (
+                        <div className="flex items-center justify-center gap-6 mt-6">
+                          <Link to="/my-submissions" className="font-body text-lg text-ink-300 hover:text-gold-400 transition-colors duration-300">
+                            My submissions
+                          </Link>
+                          <button onClick={logout} className="font-body text-lg text-ink-500 hover:text-red-400 transition-colors">
+                            Sign out
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-6 mt-6">
+                          <Link to="/login" className="font-body text-lg text-ink-300 hover:text-gold-400 transition-colors duration-300">
+                            Sign in
+                          </Link>
+                          <Link to="/join" className="font-body text-lg text-ink-500 hover:text-gold-400 transition-colors duration-300">
+                            Join
+                          </Link>
+                        </div>
+                      )}
+                    </motion.div>
                 </div>
               </div>
 
@@ -256,7 +319,7 @@ export default function PublicLayout() {
               <div className="flex items-center justify-center md:justify-start mb-5">
                 <img
                   src="/Images/logo/logo.svg"
-                  alt="The Poetry Archive"
+                  alt="AmarKobita"
                   className="h-20 w-auto object-contain"
                 />
               </div>

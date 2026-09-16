@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { Link, useNavigate } from 'react-router-dom';
+import { useUser } from '../../context/UserContext';
 import { motion } from 'framer-motion';
 
-export default function LoginPage() {
+const EASE = [0.22, 1, 0.36, 1];
+
+export default function UserLoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, isAdmin } = useAuth();
+  const { login, isUser } = useUser();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAdmin) navigate('/admin', { replace: true });
-  }, [isAdmin, navigate]);
+    if (isUser) navigate('/submit', { replace: true });
+  }, [isUser, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,7 +23,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(username, password);
-      navigate('/admin');
+      navigate('/submit');
     } catch (err) {
       setError(err.message || 'Invalid credentials');
     }
@@ -29,22 +31,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-ink-950 flex items-center justify-center px-6">
+    <div className="min-h-screen bg-ink-950 flex items-center justify-center px-6 py-28">
       <div className="grain-overlay" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: EASE }}
         className="relative z-10 w-full max-w-sm"
       >
         <div className="text-center mb-8">
-          <img
-            src="/Images/logo/admin.svg"
-            alt="Admin"
-            className="w-12 h-12 mx-auto mb-4 object-contain"
-          />
-          <h1 className="font-body text-2xl text-ink-100">Admin Panel</h1>
-          <p className="font-body text-sm text-ink-500 mt-1">AmarKobita</p>
+          <span className="font-body text-xs uppercase tracking-[0.3em] text-gold-500/60 mb-4 block">
+            Welcome back
+          </span>
+          <h1 className="font-display text-3xl font-light text-ink-100">Sign in</h1>
+          <p className="font-body text-sm text-ink-500 mt-2">
+            Check your submissions and share new writings.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -77,14 +80,17 @@ export default function LoginPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full btn-primary mt-6"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
+          <button type="submit" disabled={loading} className="w-full btn-primary mt-6">
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
+
+        <p className="font-body text-sm text-ink-500 text-center mt-6">
+          New here?{' '}
+          <Link to="/join" className="text-gold-400 hover:text-gold-300 transition-colors">
+            Create an account
+          </Link>
+        </p>
       </motion.div>
     </div>
   );

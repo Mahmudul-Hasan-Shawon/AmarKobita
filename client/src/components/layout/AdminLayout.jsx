@@ -3,9 +3,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useState, useEffect } from 'react';
 import { Stagger, Item } from '../ui/motion.jsx';
 import { useLenisScroll } from '../ui/LenisProvider';
+import { apiSubmissions } from '../../api/client';
 
 const sidebarLinks = [
   { to: '/admin', label: 'Dashboard', exact: true, icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+  { to: '/admin/submissions', label: 'Submissions', icon: 'M4 4h16a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zm-1 9h18a1 1 0 011 1v6a1 1 0 01-1 1H3a1 1 0 01-1-1v-6a1 1 0 011-1zm7-7v2m0 4v2' },
   { to: '/admin/writings', label: 'Writings', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
   { to: '/admin/authors', label: 'Authors', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
   { to: '/admin/categories', label: 'Categories', icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z' },
@@ -19,7 +21,14 @@ export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   const { scrollTopInstant } = useLenisScroll();
+
+  useEffect(() => {
+    apiSubmissions.admin.list({ status: 'pending', limit: 1 })
+      .then((data) => setPendingCount(data.pagination?.total || 0))
+      .catch(() => setPendingCount(0));
+  }, [location.pathname]);
 
   // Reset scroll to top on navigation
   useEffect(() => {
@@ -52,7 +61,7 @@ export default function AdminLayout() {
               />
               <div>
                 <span className="font-body text-sm text-ink-100 block">Admin Panel</span>
-                <span className="font-body text-xs text-ink-500">Poetry Archive</span>
+                <span className="font-body text-xs text-ink-500">AmarKobita</span>
               </div>
             </Link>
           </div>
@@ -73,6 +82,9 @@ export default function AdminLayout() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={link.icon} />
                   </svg>
                   {link.label}
+                  {link.to === '/admin/submissions' && pendingCount > 0 && (
+                    <span className="ml-auto badge badge-pending !py-0.5 !px-2">{pendingCount}</span>
+                  )}
                 </Link>
               </Item>
             ))}

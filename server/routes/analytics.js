@@ -15,6 +15,10 @@ router.get('/overview', authMiddleware, (req, res) => {
     const totalCollections = db.prepare('SELECT COUNT(*) as count FROM collections').get().count;
     const totalViews = db.prepare('SELECT COALESCE(SUM(views), 0) as total FROM writings').get().total;
     const totalSaves = db.prepare('SELECT COALESCE(SUM(saves), 0) as total FROM writings').get().total;
+    const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
+    const pendingSubmissions = db.prepare("SELECT COUNT(*) as count FROM submissions WHERE status = 'pending'").get().count;
+    const approvedSubmissions = db.prepare("SELECT COUNT(*) as count FROM submissions WHERE status = 'approved'").get().count;
+    const rejectedSubmissions = db.prepare("SELECT COUNT(*) as count FROM submissions WHERE status = 'rejected'").get().count;
 
     res.json({
       totalWritings,
@@ -25,6 +29,10 @@ router.get('/overview', authMiddleware, (req, res) => {
       totalCollections,
       totalViews,
       totalSaves,
+      totalUsers,
+      pendingSubmissions,
+      approvedSubmissions,
+      rejectedSubmissions,
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch analytics' });

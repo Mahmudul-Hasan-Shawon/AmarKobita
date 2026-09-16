@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import App from './App'
 import { AuthProvider } from './context/AuthContext'
+import { UserProvider } from './context/UserContext'
 import { FavoritesProvider } from './context/FavoritesContext'
 import LenisProvider from './components/ui/LenisProvider'
 import VeilTransition from './components/ui/VeilTransition'
@@ -15,11 +16,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <LenisProvider>
           <AuthProvider>
-            <FavoritesProvider>
-              <VeilTransition>
-                <App />
-              </VeilTransition>
-            </FavoritesProvider>
+            <UserProvider>
+              <FavoritesProvider>
+                <VeilTransition>
+                  <App />
+                </VeilTransition>
+              </FavoritesProvider>
+            </UserProvider>
           </AuthProvider>
         </LenisProvider>
       </BrowserRouter>

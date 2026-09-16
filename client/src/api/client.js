@@ -41,6 +41,31 @@ export const apiAuth = {
     }),
 };
 
+export const apiUserAuth = {
+  register: (username, email, password) =>
+    api.post('/user-auth/register', { username, email, password }),
+  login: (username, password) =>
+    api.post('/user-auth/login', { username, password }),
+  logout: () => api.post('/user-auth/logout'),
+  me: () => api.get('/user-auth/me'),
+};
+
+export const apiSubmissions = {
+  create: (data) => api.post('/submissions', data),
+  mine: () => api.get('/submissions/mine'),
+  deleteMine: (id) => api.delete(`/submissions/mine/${id}`),
+  admin: {
+    list: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return api.get(`/submissions/admin/list${query ? `?${query}` : ''}`);
+    },
+    get: (id) => api.get(`/submissions/admin/${id}`),
+    approve: (id, note) => api.post(`/submissions/admin/${id}/approve`, { note }),
+    reject: (id, note) => api.post(`/submissions/admin/${id}/reject`, { note }),
+    delete: (id) => api.delete(`/submissions/admin/${id}`),
+  },
+};
+
 export const apiWritings = {
   list: (params = {}) => {
     const query = new URLSearchParams(params).toString();

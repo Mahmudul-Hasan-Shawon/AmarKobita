@@ -95,7 +95,7 @@ export default function HomePage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/explore" className="btn-primary">
-                Explore the Archive
+                Explore AmarKobita
               </Link>
               <button onClick={handleDiscover} className="btn-secondary" disabled={randomLoading}>
                 {randomLoading ? 'Finding...' : 'Discover a Thought'}

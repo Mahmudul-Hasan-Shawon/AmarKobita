@@ -11,8 +11,13 @@ import CollectionPage from './pages/public/CollectionPage';
 import CollectionsPage from './pages/public/CollectionsPage';
 import SearchPage from './pages/public/SearchPage';
 import AboutPage from './pages/public/AboutPage';
+import RegisterPage from './pages/public/RegisterPage';
+import UserLoginPage from './pages/public/UserLoginPage';
+import SubmitWritingPage from './pages/public/SubmitWritingPage';
+import MySubmissionsPage from './pages/public/MySubmissionsPage';
 import LoginPage from './pages/admin/LoginPage';
 import DashboardPage from './pages/admin/DashboardPage';
+import SubmissionsPage from './pages/admin/SubmissionsPage';
 import WritingsPage from './pages/admin/WritingsPage';
 import WritingFormPage from './pages/admin/WritingFormPage';
 import AuthorsAdminPage from './pages/admin/AuthorsAdminPage';
@@ -45,6 +50,10 @@ export default function App() {
         <Route path="/collections/:slug" element={<CollectionPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/join" element={<RegisterPage />} />
+        <Route path="/login" element={<UserLoginPage />} />
+        <Route path="/submit" element={<SubmitWritingPage />} />
+        <Route path="/my-submissions" element={<MySubmissionsPage />} />
       </Route>
 
       <Route path="/admin/login" element={<LoginPage />} />
@@ -58,6 +67,7 @@ export default function App() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="submissions" element={<SubmissionsPage />} />
         <Route path="writings" element={<WritingsPage />} />
         <Route path="writings/new" element={<WritingFormPage />} />
         <Route path="writings/:id/edit" element={<WritingFormPage />} />

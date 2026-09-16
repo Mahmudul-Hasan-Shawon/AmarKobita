@@ -4,14 +4,14 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
-function slugify(text) {
+export function slugify(text) {
   return text.toString().toLowerCase().trim()
     .replace(/\s+/g, '-').replace(/[^\p{L}\p{M}\p{N}\-]+/gu, '')
     .replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '')
     .substring(0, 200);
 }
 
-function generateUniqueSlug(db, baseSlug, excludeId = null) {
+export function generateUniqueSlug(db, baseSlug, excludeId = null) {
   let slug = baseSlug;
   let counter = 1;
   while (true) {

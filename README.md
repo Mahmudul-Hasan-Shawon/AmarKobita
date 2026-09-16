@@ -1,4 +1,4 @@
-# The Poetry Archive
+# AmarKobita
 
 A quiet digital library of human thought. A premium, minimalist poetry and wisdom website serving as a digital literary archive for quotes, poetry, verses, and writings from Rumi, Mirza Ghalib, Rabindranath Tagore, and many more.
 
@@ -162,8 +162,8 @@ The whole app (API + built React site) runs as a single Node process, so it depl
 Using Docker (also works on Railway/Render/Fly/VPS):
 
 ```bash
-docker build -t poetry-archive .
-docker run -p 3001:3001 -v poetry-db:/app/server/db poetry-archive
+docker build -t amarkobita .
+docker run -p 3001:3001 -v poetry-db:/app/server/db amarkobita
 ```
 
 Health check: `GET /api/health` returns `{ "status": "ok" }`.

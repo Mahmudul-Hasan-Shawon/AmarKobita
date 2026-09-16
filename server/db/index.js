@@ -22,6 +22,32 @@ export function getDb() {
 
 function initDb() {
   db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      email TEXT,
+      password_hash TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      title TEXT,
+      text TEXT NOT NULL,
+      original_text TEXT,
+      language TEXT DEFAULT 'english',
+      category_id INTEGER,
+      status TEXT DEFAULT 'pending',
+      admin_note TEXT,
+      writing_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at DATETIME,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+      FOREIGN KEY (writing_id) REFERENCES writings(id) ON DELETE SET NULL
+    );
+
     CREATE TABLE IF NOT EXISTS admin (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
@@ -129,6 +155,9 @@ function initDb() {
     CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);
     CREATE INDEX IF NOT EXISTS idx_collections_slug ON collections(slug);
     CREATE INDEX IF NOT EXISTS idx_daily_words_date ON daily_words(date);
+    CREATE INDEX IF NOT EXISTS idx_submissions_user ON submissions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_submissions_status ON submissions(status);
+    CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
   `);
 
   const writingCols = db.prepare(`PRAGMA table_info(writings)`).all();

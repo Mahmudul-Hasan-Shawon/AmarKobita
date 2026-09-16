@@ -26,7 +26,7 @@ router.get('/json', authMiddleware, (req, res) => {
     };
 
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', 'attachment; filename="poetry-archive-export.json"');
+    res.setHeader('Content-Disposition', 'attachment; filename="amarkobita-export.json"');
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: 'Export failed' });
@@ -55,7 +55,7 @@ router.get('/csv', authMiddleware, (req, res) => {
     }
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="poetry-archive-writings.csv"');
+    res.setHeader('Content-Disposition', 'attachment; filename="amarkobita-writings.csv"');
     res.send(csvRows.join('\n'));
   } catch (err) {
     res.status(500).json({ error: 'CSV export failed' });

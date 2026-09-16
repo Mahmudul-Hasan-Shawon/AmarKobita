@@ -75,7 +75,7 @@ export default function QuotePage() {
   return (
     <>
       <Helmet>
-        <title>{`${writing.title || writing.text.substring(0, 60)} — The Poetry Archive`}</title>
+        <title>{`${writing.title || writing.text.substring(0, 60)} — AmarKobita`}</title>
         <meta name="description" content={writing.text.substring(0, 160)} />
         <meta property="og:title" content={writing.title || `Words by ${authorName}`} />
         <meta property="og:description" content={writing.text.substring(0, 160)} />

@@ -6,6 +6,8 @@ import { dirname, join } from 'path';
 import { getDb } from './db/index.js';
 
 import authRoutes from './routes/auth.js';
+import userAuthRoutes from './routes/user-auth.js';
+import submissionsRoutes from './routes/submissions.js';
 import authorsRoutes from './routes/authors.js';
 import categoriesRoutes from './routes/categories.js';
 import collectionsRoutes from './routes/collections.js';
@@ -25,6 +27,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/user-auth', userAuthRoutes);
+app.use('/api/submissions', submissionsRoutes);
 app.use('/api/authors', authorsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/collections', collectionsRoutes);

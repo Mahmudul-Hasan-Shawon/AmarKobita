@@ -217,6 +217,18 @@
     @apply bg-ink-800/50 text-ink-400 border border-ink-700/30;
   }
 
+  .badge-pending {
+    @apply bg-amber-900/30 text-amber-400 border border-amber-800/30;
+  }
+
+  .badge-approved {
+    @apply bg-emerald-900/30 text-emerald-400 border border-emerald-800/30;
+  }
+
+  .badge-rejected {
+    @apply bg-red-900/30 text-red-400 border border-red-800/30;
+  }
+
   .social-row {
     display: flex;
     justify-content: center;

@@ -17,7 +17,7 @@ export default function ImportExportPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'poetry-archive-export.json';
+      a.download = 'amarkobita-export.json';
       a.click();
       URL.revokeObjectURL(url);
     } catch {}
@@ -32,7 +32,7 @@ export default function ImportExportPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'poetry-archive-writings.csv';
+      a.download = 'amarkobita-writings.csv';
       a.click();
       URL.revokeObjectURL(url);
     } catch {}
