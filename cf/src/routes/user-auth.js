@@ -1,4 +1,4 @@
-import { all, one, run } from '../db.js';
+import { all, one, run, batch } from '../db.js';
 import { ok, fail, readBody } from '../util.js';
 import { bcrypt, signToken, serializeCookie } from '../auth.js';
 
