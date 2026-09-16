@@ -7,6 +7,7 @@ import { languageLabel } from '../../utils/helpers';
 export default function AuthorsAdminPage() {
   const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   const load = async () => {
     try {
@@ -17,6 +18,15 @@ export default function AuthorsAdminPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const filtered = authors.filter((a) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (a.name || '').toLowerCase().includes(q)
+      || (a.country || '').toLowerCase().includes(q)
+      || (a.primary_language || '').toLowerCase().includes(q)
+      || String(a.id) === q;
+  });
 
   const handleDelete = async (id, name) => {
     if (!confirm(`Delete author "${name}" permanently?\n\nThis also deletes all of their writings, and if it's a community account, the linked user login and submissions. This cannot be undone.`)) return;
@@ -30,12 +40,25 @@ export default function AuthorsAdminPage() {
 
   return (
     <Stagger>
-      <Item y={0} className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-body text-2xl text-ink-100">Authors</h1>
-          <p className="font-body text-sm text-ink-500 mt-1">{authors.length} authors</p>
+      <Item y={0} className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="font-body text-2xl text-ink-100">Authors</h1>
+            <p className="font-body text-sm text-ink-500 mt-1">
+              {search ? `${filtered.length} of ${authors.length} authors` : `${authors.length} authors`}
+            </p>
+          </div>
+          <Link to="/admin/authors/new" className="btn-primary text-xs">+ New Author</Link>
         </div>
-        <Link to="/admin/authors/new" className="btn-primary text-xs">+ New Author</Link>
+        <form onSubmit={(e) => e.preventDefault()} className="flex gap-3">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, country, or language"
+            className="flex-1 font-body text-sm text-ink-100 bg-ink-950 border border-ink-800/60 rounded-sm px-4 py-2.5 outline-none focus:border-gold-500/60 transition-colors placeholder:text-ink-600"
+          />
+        </form>
       </Item>
 
       <div data-lenis-prevent className="overflow-auto max-h-[calc(100vh-15rem)] border border-ink-800/30">
@@ -52,7 +75,11 @@ export default function AuthorsAdminPage() {
             </tr>
           </thead>
           <tbody>
-            {authors.map((author) => (
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-10 text-center text-ink-500 font-body text-sm">No authors found.</td>
+              </tr>
+            ) : filtered.map((author) => (
               <Item as="tr" key={author.id}>
                 <td>
                   <div className="flex items-center gap-3">
